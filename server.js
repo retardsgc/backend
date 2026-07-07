@@ -198,9 +198,10 @@ app.get('/', (req, res) => {
   });
 });
 
-// Handle favicon.ico requests gracefully to prevent console 404 errors
+// Handle favicon.ico requests gracefully by serving the icon file
 app.get('/favicon.ico', (req, res) => {
-  res.status(204).end();
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.sendFile(path.join(__dirname, 'favicon.ico'));
 });
 
 app.all('*', (req, res, next) => {
