@@ -1,4 +1,4 @@
-// Trigger restart for database migration
+// Trigger restart for database migration - brand new Atlas cluster
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 dotenv.config({ path: './config.env' });
