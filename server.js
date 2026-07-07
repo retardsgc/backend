@@ -189,6 +189,20 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/aboutus', aboutUsRoutes);
 app.use('/api/admin-auth', adminAuthRoutes);
 
+// Root URL welcome/status message
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'NutriNuts E-commerce API is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Handle favicon.ico requests gracefully to prevent console 404 errors
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
+
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
