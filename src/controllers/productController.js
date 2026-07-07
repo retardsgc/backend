@@ -1,0 +1,704 @@
+const Product = require('../models/Product');
+const Category = require('../models/Category');
+
+// @desc    Get all products with optional filtering and pagination
+// @route   GET /api/products
+// @access  Public
+const getAllProducts = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      category,
+      hotDeal,
+      bestseller,
+      inStock,
+      minPrice,
+      maxPrice,
+      minRating,
+      maxRating,
+      colors,
+      sizes,
+      tags,
+      sort = 'createdAt',
+      order = 'desc',
+      search,
+      admin = 'false' // Admin flag to include products from disabled categories
+    } = req.query;
+
+    // Build filter query
+    const filter = {};
+
+    // For public access, only show products from active categories
+    if (admin !== 'true') {
+      const activeCategories = await Category.find({ status: 'active' }).select('_id');
+      const activeCategoryIds = activeCategories.map(cat => cat._id);
+      filter.categoryId = { $in: activeCategoryIds };
+    }
+
+    if (category) {
+      if (admin === 'true') {
+        filter.categoryId = category;
+      } else {
+        // Verify the category is active for public access
+        const categoryDoc = await Category.findById(category);
+        if (!categoryDoc || categoryDoc.status !== 'active') {
+          return res.status(404).json({
+            success: false,
+            message: 'Category not found or not available'
+          });
+        }
+        filter.categoryId = category;
+      }
+    }
+
+    if (hotDeal === 'true') filter.hotDeal = true;
+    if (bestseller === 'true') filter.bestseller = true;
+    if (inStock === 'true') filter.inStock = true;
+
+    // Price range filter
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = parseFloat(minPrice);
+      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+    }
+
+    // Rating range filter
+    if (minRating || maxRating) {
+      filter.rating = {};
+      if (minRating) filter.rating.$gte = parseFloat(minRating);
+      if (maxRating) filter.rating.$lte = parseFloat(maxRating);
+    }
+
+    // Color filter (comma-separated)
+    if (colors) {
+      const colorArray = colors.split(',').map(c => c.trim().toLowerCase());
+      filter['colors.name'] = { $in: colorArray.map(c => new RegExp(c, 'i')) };
+    }
+
+    // Size filter (comma-separated)
+    if (sizes) {
+      const sizeArray = sizes.split(',').map(s => s.trim());
+      filter.sizes = { $in: sizeArray };
+    }
+
+    // Tags filter (comma-separated)
+    if (tags) {
+      const tagArray = tags.split(',').map(t => t.trim().toLowerCase());
+      filter.tags = { $in: tagArray.map(t => new RegExp(t, 'i')) };
+    }
+
+    // Text search with regex fallback
+    if (search) {
+      // Use regex for partial matching (more flexible than $text)
+      const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [
+        { name: searchRegex },
+        { description: searchRegex },
+        { category: searchRegex },
+        { tags: searchRegex }
+      ];
+    }
+
+    // Build sort object
+    const sortObj = {};
+    // Support multiple sort options
+    switch (sort) {
+      case 'price_asc':
+        sortObj.price = 1;
+        break;
+      case 'price_desc':
+        sortObj.price = -1;
+        break;
+      case 'rating':
+        sortObj.rating = -1;
+        sortObj.reviews = -1;
+        break;
+      case 'newest':
+        sortObj.createdAt = -1;
+        break;
+      case 'name_asc':
+        sortObj.name = 1;
+        break;
+      case 'name_desc':
+        sortObj.name = -1;
+        break;
+      case 'popular':
+        sortObj.reviews = -1;
+        sortObj.rating = -1;
+        break;
+      default:
+        sortObj[sort] = order === 'desc' ? -1 : 1;
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Execute query with pagination
+    const products = await Product.find(filter)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count for pagination
+    const total = await Product.countDocuments(filter);
+    const totalPages = Math.ceil(total / parseInt(limit));
+
+    // Get price range for filters
+    const priceStats = await Product.aggregate([
+      { $match: admin !== 'true' ? { categoryId: { $in: filter.categoryId?.$in || [] } } : {} },
+      {
+        $group: {
+          _id: null,
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: products,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalProducts: total,
+        hasNextPage: parseInt(page) < totalPages,
+        hasPrevPage: parseInt(page) > 1
+      },
+      filters: {
+        priceRange: priceStats[0] || { minPrice: 0, maxPrice: 1000 }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching products',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get single product by ID
+// @route   GET /api/products/:id
+// @access  Public
+const getProductById = async (req, res) => {
+  try {
+    const { admin = 'false' } = req.query;
+
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    // For public access, check if the product's category is active
+    if (admin !== 'true') {
+      const category = await Category.findById(product.categoryId);
+      if (!category || category.status !== 'active') {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not available'
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: product
+    });
+  } catch (error) {
+    console.error('Error fetching product:', error);
+
+    // Handle invalid ObjectId
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching product',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get products by category
+// @route   GET /api/products/category/:categoryId
+// @access  Public
+const getProductsByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { page = 1, limit = 10, sort = 'createdAt', order = 'desc' } = req.query;
+
+    // Build sort object
+    const sortObj = {};
+    sortObj[sort] = order === 'desc' ? -1 : 1;
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Find products by category
+    const products = await Product.find({ categoryId, inStock: true })
+      .sort(sortObj)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count for pagination
+    const total = await Product.countDocuments({ categoryId, inStock: true });
+    const totalPages = Math.ceil(total / parseInt(limit));
+
+    res.json({
+      success: true,
+      data: products,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalProducts: total,
+        hasNextPage: parseInt(page) < totalPages,
+        hasPrevPage: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching products by category:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching products by category',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get hot deal products
+// @route   GET /api/products/hotdeals
+// @access  Public
+const getHotDealProducts = async (req, res) => {
+  try {
+    const { limit = 8 } = req.query;
+
+    const products = await Product.find({ hotDeal: true, inStock: true })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+
+    res.json({
+      success: true,
+      data: products,
+      count: products.length
+    });
+  } catch (error) {
+    console.error('Error fetching hot deal products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching hot deal products',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get bestseller products
+// @route   GET /api/products/bestsellers
+// @access  Public
+const getBestsellerProducts = async (req, res) => {
+  try {
+    const { limit = 8 } = req.query;
+
+    const products = await Product.find({ bestseller: true, inStock: true })
+      .sort({ rating: -1, reviews: -1 })
+      .limit(parseInt(limit));
+
+    res.json({
+      success: true,
+      data: products,
+      count: products.length
+    });
+  } catch (error) {
+    console.error('Error fetching bestseller products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching bestseller products',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Search products
+// @route   GET /api/products/search
+// @access  Public
+const searchProducts = async (req, res) => {
+  try {
+    const { q, page = 1, limit = 10 } = req.query;
+
+    if (!q) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required'
+      });
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get active categories for filtering
+    const activeCategories = await Category.find({ status: 'active' }).select('_id');
+    const activeCategoryIds = activeCategories.map(cat => cat._id);
+
+    // Use regex for flexible partial matching
+    const searchRegex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const searchFilter = {
+      $or: [
+        { name: searchRegex },
+        { description: searchRegex },
+        { category: searchRegex },
+        { tags: searchRegex }
+      ],
+      categoryId: { $in: activeCategoryIds }
+    };
+
+    // Search products using regex (more flexible than $text)
+    const products = await Product.find(searchFilter)
+      .sort({ hotDeal: -1, bestseller: -1, rating: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count for pagination
+    const total = await Product.countDocuments(searchFilter);
+    const totalPages = Math.ceil(total / parseInt(limit));
+
+    res.json({
+      success: true,
+      data: products,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalProducts: total,
+        hasNextPage: parseInt(page) < totalPages,
+        hasPrevPage: parseInt(page) > 1
+      },
+      searchQuery: q
+    });
+  } catch (error) {
+    console.error('Error searching products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error searching products',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get product statistics
+// @route   GET /api/products/stats
+// @access  Public
+const getProductStats = async (req, res) => {
+  try {
+    const totalProducts = await Product.countDocuments();
+    const hotDealProducts = await Product.countDocuments({ hotDeal: true });
+    const bestsellerProducts = await Product.countDocuments({ bestseller: true });
+    const inStockProducts = await Product.countDocuments({ inStock: true });
+
+    res.json({
+      success: true,
+      data: {
+        totalProducts,
+        hotDealProducts,
+        bestsellerProducts,
+        inStockProducts
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching product stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching product statistics',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get related products for a specific product
+// @route   GET /api/products/:id/related
+// @access  Public
+const getRelatedProducts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { limit = 4 } = req.query;
+
+    // Get the current product to find its category
+    const currentProduct = await Product.findById(id);
+    
+    if (!currentProduct) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    // Find related products from the same category, excluding the current product
+    const relatedProducts = await Product.find({
+      categoryId: currentProduct.categoryId,
+      _id: { $ne: id } // Exclude current product
+    })
+    .limit(parseInt(limit))
+    .sort({ hotDeal: -1, bestseller: -1, createdAt: -1 }); // Prioritize hot deal and bestseller products
+
+    res.json({
+      success: true,
+      data: relatedProducts
+    });
+  } catch (error) {
+    console.error('Error fetching related products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching related products',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Create a new product
+// @route   POST /api/products
+// @access  Private (Admin only)
+const createProduct = async (req, res) => {
+  try {
+    const { categoryId, category, ...productData } = req.body;
+
+    // Validate category exists and is active
+    if (categoryId) {
+      const categoryExists = await Category.findById(categoryId);
+      if (!categoryExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid category ID'
+        });
+      }
+
+      // Update category name to match the category document
+      productData.category = categoryExists.name;
+      productData.categoryId = categoryId;
+    } else if (category) {
+      // If only category name is provided, find the category
+      const categoryDoc = await Category.findOne({ name: category });
+      if (!categoryDoc) {
+        return res.status(400).json({
+          success: false,
+          message: 'Category not found. Please create the category first.'
+        });
+      }
+
+      productData.category = category;
+      productData.categoryId = categoryDoc._id;
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Category is required'
+      });
+    }
+
+    const product = new Product(productData);
+    const savedProduct = await product.save();
+
+    // Update category product count
+    await Category.findByIdAndUpdate(
+      productData.categoryId,
+      { $inc: { productCount: 1 } }
+    );
+
+    res.status(201).json({
+      success: true,
+      data: savedProduct,
+      message: 'Product created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    res.status(400).json({
+      success: false,
+      message: 'Error creating product',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Update a product
+// @route   PUT /api/products/:id
+// @access  Private (Admin only)
+const updateProduct = async (req, res) => {
+  try {
+    const existingProduct = await Product.findById(req.params.id);
+    if (!existingProduct) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    const { categoryId, category, ...updateData } = req.body;
+    const oldCategoryId = existingProduct.categoryId || null;
+
+    // Handle category updates
+    if (categoryId) {
+      const categoryExists = await Category.findById(categoryId);
+      if (!categoryExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid category ID'
+        });
+      }
+
+      updateData.category = categoryExists.name;
+      updateData.categoryId = categoryId;
+    } else if (category) {
+      const categoryDoc = await Category.findOne({ name: category });
+      if (!categoryDoc) {
+        return res.status(400).json({
+          success: false,
+          message: 'Category not found. Please create the category first.'
+        });
+      }
+
+      updateData.category = category;
+      updateData.categoryId = categoryDoc._id;
+    }
+
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    // Update category product counts if category changed
+    const oldCategoryIdStr = oldCategoryId ? oldCategoryId.toString() : null;
+    const newCategoryIdStr = updateData.categoryId ? updateData.categoryId.toString() : null;
+
+    if (newCategoryIdStr && oldCategoryIdStr !== newCategoryIdStr) {
+      // Decrease count for old category (if present)
+      if (oldCategoryIdStr) {
+        await Category.findByIdAndUpdate(
+          oldCategoryIdStr,
+          { $inc: { productCount: -1 } }
+        );
+      }
+
+      // Increase count for new category
+      await Category.findByIdAndUpdate(
+        newCategoryIdStr,
+        { $inc: { productCount: 1 } }
+      );
+    }
+
+    res.json({
+      success: true,
+      data: product,
+      message: 'Product updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(400).json({
+      success: false,
+      message: 'Error updating product',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Delete a product
+// @route   DELETE /api/products/:id
+// @access  Private (Admin only)
+const deleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    const categoryId = product.categoryId;
+
+    // Delete the product
+    await Product.findByIdAndDelete(req.params.id);
+
+    // Update category product count
+    if (categoryId) {
+      await Category.findByIdAndUpdate(
+        categoryId,
+        { $inc: { productCount: -1 } }
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Product deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting product',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Update product status (featured, bestseller, inStock)
+// @route   PATCH /api/products/:id/status
+// @access  Private (Admin only)
+const updateProductStatus = async (req, res) => {
+  try {
+    const { hotDeal, bestseller, inStock } = req.body;
+    const updateFields = {};
+    
+    if (hotDeal !== undefined) updateFields.hotDeal = hotDeal;
+    if (bestseller !== undefined) updateFields.bestseller = bestseller;
+    if (inStock !== undefined) updateFields.inStock = inStock;
+
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      updateFields,
+      { new: true }
+    );
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: product,
+      message: 'Product status updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating product status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating product status',
+      error: error.message
+    });
+  }
+};
+
+module.exports = {
+  getAllProducts,
+  getProductById,
+  getProductsByCategory,
+  getHotDealProducts,
+  getBestsellerProducts,
+  searchProducts,
+  getProductStats,
+  getRelatedProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  updateProductStatus
+};
