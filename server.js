@@ -53,6 +53,8 @@ const normalizeOrigin = (value) => {
 const fallbackOrigins = [
   process.env.FRONTEND_URL,
   process.env.ADMIN_FRONTEND_URL,
+  'https://nutrinuts-store.vercel.app',
+  'https://nutrinuts-admin.vercel.app',
   'https://frontend-three-eta-33.vercel.app',
   'https://adminfrontend-pi-rosy.vercel.app',
   'http://localhost:5173',
