@@ -10,10 +10,12 @@ const siteConfigs = [
     key: 'all',
     config: {
       branding: {
+        name: 'Ecomus',
+        siteName: 'Ecomus',
         logo: {
           light: '/logo.svg',
           dark: '/logo-dark.svg',
-          alt: 'NutriNuts Logo',
+          alt: 'Ecomus Logo',
         },
         faviconUrl: '/favicon.ico',
         colors: {
