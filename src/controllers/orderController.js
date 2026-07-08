@@ -3,6 +3,46 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const { sendOrderConfirmationEmail } = require('../utils/orderEmails');
 
+// Helper to resolve the correct unit price of a product based on chosen variant/size
+const resolveItemUnitPrice = (product, selectedSize, selectedColor) => {
+  const basePrice = Number(product.price) || 0;
+  const normalizedSize = (selectedSize || '').toString().trim().toLowerCase();
+  const normalizedColor = (selectedColor || '').toString().trim().toLowerCase();
+
+  // Prefer active variant pricing when variant data exists.
+  if (Array.isArray(product.variants) && product.variants.length > 0) {
+    let matchedVariant = null;
+
+    if (normalizedSize || normalizedColor) {
+      matchedVariant = product.variants.find((variant) => {
+        const variantSize = (variant.size || '').toString().trim().toLowerCase();
+        const variantColor = (variant.color?.name || '').toString().trim().toLowerCase();
+        const sizeMatches = !normalizedSize || variantSize === normalizedSize;
+        const colorMatches = !normalizedColor || variantColor === normalizedColor;
+        return variant.isActive !== false && sizeMatches && colorMatches;
+      });
+    }
+
+    if (matchedVariant && Number.isFinite(Number(matchedVariant.price))) {
+      return Number(matchedVariant.price);
+    }
+  }
+
+  // Fallback to size-based pricing.
+  if (normalizedSize && Array.isArray(product.sizes) && product.sizes.length > 0) {
+    const matchedSize = product.sizes.find((sizeOption) => {
+      const optionName = (sizeOption.name || '').toString().trim().toLowerCase();
+      return optionName === normalizedSize;
+    });
+
+    if (matchedSize && Number.isFinite(Number(matchedSize.price)) && Number(matchedSize.price) > 0) {
+      return Number(matchedSize.price);
+    }
+  }
+
+  return basePrice;
+};
+
 // Create order directly from product selection (for direct checkout)
 const createDirectOrder = async (req, res) => {
   try {
@@ -115,7 +155,7 @@ const createDirectOrder = async (req, res) => {
 // Create order from current cart
 const createOrderFromCart = async (req, res) => {
   try {
-    const { shippingAddress } = req.body;
+    const { shippingAddress, items: bodyItems } = req.body;
 
     // Validate shipping address if provided
     if (shippingAddress) {
@@ -129,40 +169,67 @@ const createOrderFromCart = async (req, res) => {
       }
     }
 
-    const user = await User.findById(req.user.id).populate('cart.product');
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(400).json({ success: false, message: 'User not found' });
     }
-    
-    if (!user.cart || user.cart.length === 0) {
-      return res.status(400).json({ success: false, message: 'Cart is empty' });
-    }
-
-    // Filter out any cart items with null products
-    const validCartItems = user.cart.filter(item => item.product && item.product._id);
-    
-    if (validCartItems.length === 0) {
-      return res.status(400).json({ success: false, message: 'No valid items in cart' });
-    }
 
     let subtotal = 0;
-    const items = validCartItems.map((item) => {
-      const product = item.product;
-      const price = product.price || 0;
-      const quantity = item.quantity || 1;
-      const itemTotal = price * quantity;
-      subtotal += itemTotal;
-      return {
-        product: product._id,
-        name: product.name || 'Unknown Product',
-        price: price,
-        image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : undefined,
-        quantity: quantity,
-        itemTotal,
-        selectedColor: item.selectedColor || '',
-        selectedSize: item.selectedSize || '',
-      };
-    });
+    let items = [];
+
+    if (bodyItems && Array.isArray(bodyItems) && bodyItems.length > 0) {
+      // Build items from bodyItems (passed by frontend client-side cart)
+      for (const item of bodyItems) {
+        const product = await Product.findById(item.productId);
+        if (!product) {
+          return res.status(400).json({ success: false, message: `Product not found: ${item.productId}` });
+        }
+        const price = resolveItemUnitPrice(product, item.selectedSize, item.selectedColor);
+        const parsedQty = parseInt(item.quantity, 10);
+        const quantity = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+        const itemTotal = price * quantity;
+        subtotal += itemTotal;
+        items.push({
+          product: product._id,
+          name: product.name,
+          price,
+          image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : undefined,
+          quantity,
+          itemTotal,
+          selectedColor: item.selectedColor || '',
+          selectedSize: item.selectedSize || ''
+        });
+      }
+    } else {
+      // Fallback to database user.cart
+      await user.populate('cart.product');
+      if (!user.cart || user.cart.length === 0) {
+        return res.status(400).json({ success: false, message: 'Cart is empty' });
+      }
+      
+      const validCartItems = user.cart.filter(item => item.product && item.product._id);
+      if (validCartItems.length === 0) {
+        return res.status(400).json({ success: false, message: 'No valid items in cart' });
+      }
+
+      items = validCartItems.map((item) => {
+        const product = item.product;
+        const price = product.price || 0;
+        const quantity = item.quantity || 1;
+        const itemTotal = price * quantity;
+        subtotal += itemTotal;
+        return {
+          product: product._id,
+          name: product.name || 'Unknown Product',
+          price: price,
+          image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : undefined,
+          quantity: quantity,
+          itemTotal,
+          selectedColor: item.selectedColor || '',
+          selectedSize: item.selectedSize || '',
+        };
+      });
+    }
 
     const shipping = subtotal > 50 ? 0 : 10;
     const total = subtotal + shipping;
@@ -603,45 +670,6 @@ const createGuestOrder = async (req, res) => {
         message: `Missing required shipping fields: ${missingFields.join(', ')}`
       });
     }
-
-    const resolveItemUnitPrice = (product, selectedSize, selectedColor) => {
-      const basePrice = Number(product.price) || 0;
-      const normalizedSize = (selectedSize || '').toString().trim().toLowerCase();
-      const normalizedColor = (selectedColor || '').toString().trim().toLowerCase();
-
-      // Prefer active variant pricing when variant data exists.
-      if (Array.isArray(product.variants) && product.variants.length > 0) {
-        let matchedVariant = null;
-
-        if (normalizedSize || normalizedColor) {
-          matchedVariant = product.variants.find((variant) => {
-            const variantSize = (variant.size || '').toString().trim().toLowerCase();
-            const variantColor = (variant.color?.name || '').toString().trim().toLowerCase();
-            const sizeMatches = !normalizedSize || variantSize === normalizedSize;
-            const colorMatches = !normalizedColor || variantColor === normalizedColor;
-            return variant.isActive !== false && sizeMatches && colorMatches;
-          });
-        }
-
-        if (matchedVariant && Number.isFinite(Number(matchedVariant.price))) {
-          return Number(matchedVariant.price);
-        }
-      }
-
-      // Fallback to size-based pricing.
-      if (normalizedSize && Array.isArray(product.sizes) && product.sizes.length > 0) {
-        const matchedSize = product.sizes.find((sizeOption) => {
-          const optionName = (sizeOption.name || '').toString().trim().toLowerCase();
-          return optionName === normalizedSize;
-        });
-
-        if (matchedSize && Number.isFinite(Number(matchedSize.price)) && Number(matchedSize.price) > 0) {
-          return Number(matchedSize.price);
-        }
-      }
-
-      return basePrice;
-    };
 
     // Validate and build order items from product IDs
     let subtotal = 0;
