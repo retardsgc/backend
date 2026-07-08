@@ -232,6 +232,20 @@ connectDatabase()
     server = app.listen(port, () => {
       console.log(`App running on port ${port}...`);
       console.log(`Images served from: ${sharedImagesPath} at /images`);
+      
+      // Self-ping to keep backend warm on Render (prevents 15-min inactivity sleep)
+      if (process.env.NODE_ENV === 'production') {
+        const https = require('https');
+        const backendUrl = process.env.BACKEND_URL || 'https://backend-ghv0.onrender.com';
+        console.log(`Initializing self-ping to keep service warm at ${backendUrl}...`);
+        setInterval(() => {
+          https.get(backendUrl, (res) => {
+            console.log(`Self-ping status: ${res.statusCode} at ${new Date().toISOString()}`);
+          }).on('error', (err) => {
+            console.error('Self-ping failed:', err.message);
+          });
+        }, 10 * 60 * 1000); // 10 minutes
+      }
     });
   })
   .catch(err => {
