@@ -24,7 +24,29 @@ const DEFAULT_SECTIONS = {
     ],
     footerNav: []
   },
-  hero: { slides: [] }
+  hero: { slides: [] },
+  footer: {
+    aboutText: '',
+    socialLinks: [],
+    copyright: ''
+  },
+  seo: {
+    title: '',
+    description: '',
+    keywords: ''
+  },
+  company: {
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
+  },
+  productpages: {
+    listing: {
+      title: "Latest Electronics",
+      description: "Discover cutting-edge technology and premium electronics at unbeatable prices"
+    }
+  }
 };
 
 // @desc    Get all site configuration or specific config by key
