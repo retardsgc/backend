@@ -60,5 +60,8 @@ module.exports = (err, req, res, next) => {
     if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
 
     sendErrorProd(error, res);
+  } else {
+    // FIX-BE-SERVICES: H-11 Fallback for test/staging/other environments to prevent hanging
+    sendErrorDev(err, res);
   }
 };

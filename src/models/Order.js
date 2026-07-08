@@ -54,7 +54,7 @@ const orderSchema = new mongoose.Schema(
     guestPhone: {
       type: String,
     },
-    orderNotes: {
+    customerNote: { // FIX-BE-ORDERS: H-7 rename string field to avoid conflict with array field below
       type: String,
       default: '',
     },
@@ -77,7 +77,7 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+      enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'refunded', 'partially_refunded'], // FIX-BE-ORDERS: H-9 add return/refund statuses
       default: 'pending',
     },
     paymentStatus: {

@@ -178,7 +178,20 @@ const productSchema = new Schema({
   hotDeal: {
     type: Boolean,
     default: false
-  }
+  },
+  // FIX-BE-MODELS: H-8 Added missing fields referenced by text index, controllers, and seed data
+  tags: [{
+    type: String,
+    trim: true
+  }],
+  featured: {
+    type: Boolean,
+    default: false
+  },
+  features: [{
+    type: String,
+    trim: true
+  }]
 }, {
   timestamps: true // Adds createdAt and updatedAt fields
 });

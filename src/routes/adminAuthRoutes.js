@@ -61,7 +61,9 @@ router.post('/login', async (req, res) => {
       { $set: { lastLogin: new Date(), updatedAt: new Date() } }
     );
 
-    const token = jwt.sign({ id: String(admin._id) }, process.env.JWT_SECRET);
+    // FIX-BE-AUTH: H-1 Added expiresIn: '24h'
+    // FIX-BE-AUTH: H-2 Use ADMIN_JWT_SECRET with JWT_SECRET fallback
+    const token = jwt.sign({ id: String(admin._id) }, process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET, { expiresIn: '24h' });
 
     return res.status(200).json({
       success: true,

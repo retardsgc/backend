@@ -64,9 +64,26 @@ const createDirectOrder = async (req, res) => {
       paymentStatus: 'unpaid',
       shippingAddress: {
         ...shippingAddress,
-        country: shippingAddress.country || 'United States'
+        country: shippingAddress.country || 'India' // FIX-BE-ORDERS: H-14 default country should be India
       }
     });
+
+    // FIX-BE-ORDERS: H-15 reserve inventory on order creation
+    for (const item of order.items) {
+      const productId = item.product?._id || item.product;
+      if (productId) {
+        const product = await Product.findById(productId);
+        if (product) {
+          try {
+            await product.reserveInventory(item.quantity);
+          } catch (err) {
+            console.error('Failed to reserve inventory for product ' + item.product + ':', err.message);
+          }
+        }
+      }
+    }
+    order.inventoryReserved = true;
+    await order.save();
 
     // Populate the order with product details for response
     await order.populate('items.product', 'name images category');
@@ -164,11 +181,28 @@ const createOrderFromCart = async (req, res) => {
     if (shippingAddress) {
       orderData.shippingAddress = {
         ...shippingAddress,
-        country: shippingAddress.country || 'United States'
+        country: shippingAddress.country || 'India' // FIX-BE-ORDERS: H-14 default country should be India
       };
     }
 
     const order = await Order.create(orderData);
+
+    // FIX-BE-ORDERS: H-15 reserve inventory on order creation
+    for (const item of order.items) {
+      const productId = item.product?._id || item.product;
+      if (productId) {
+        const product = await Product.findById(productId);
+        if (product) {
+          try {
+            await product.reserveInventory(item.quantity);
+          } catch (err) {
+            console.error('Failed to reserve inventory for product ' + item.product + ':', err.message);
+          }
+        }
+      }
+    }
+    order.inventoryReserved = true;
+    await order.save();
 
     // Populate the order with product details and user info for email
     await order.populate('items.product', 'name images category');
@@ -379,6 +413,24 @@ const reorderFromOrder = async (req, res) => {
     });
 
     await newOrder.save();
+
+    // FIX-BE-ORDERS: H-15 reserve inventory on order creation
+    for (const item of newOrder.items) {
+      const productId = item.product?._id || item.product;
+      if (productId) {
+        const product = await Product.findById(productId);
+        if (product) {
+          try {
+            await product.reserveInventory(item.quantity);
+          } catch (err) {
+            console.error('Failed to reserve inventory for product ' + item.product + ':', err.message);
+          }
+        }
+      }
+    }
+    newOrder.inventoryReserved = true;
+    await newOrder.save();
+
     await newOrder.populate('items.product', 'name images category');
     await newOrder.populate('user', 'name email');
 
@@ -632,8 +684,26 @@ const createGuestOrder = async (req, res) => {
       shippingAddress: {
         ...shippingAddress,
         country: shippingAddress.country || 'India'
-      }
+      },
+      customerNote: orderNotes || '' // FIX-BE-ORDERS: H-7 pass guest notes to renamed field
     });
+
+    // FIX-BE-ORDERS: H-15 reserve inventory on order creation
+    for (const item of order.items) {
+      const productId = item.product?._id || item.product;
+      if (productId) {
+        const product = await Product.findById(productId);
+        if (product) {
+          try {
+            await product.reserveInventory(item.quantity);
+          } catch (err) {
+            console.error('Failed to reserve inventory for product ' + item.product + ':', err.message);
+          }
+        }
+      }
+    }
+    order.inventoryReserved = true;
+    await order.save();
 
     await order.populate('items.product', 'name images category');
 

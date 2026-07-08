@@ -71,7 +71,8 @@ const initiatePayment = async (req, res) => {
       });
     }
 
-    const order = await Order.findOne({ _id: orderId });
+    // FIX-BE-PAYMENTS: C-2 Scope order to authenticated user
+    const order = await Order.findOne({ _id: orderId, user: req.user.id });
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -139,6 +140,14 @@ const initiatePayment = async (req, res) => {
 // @access  Private
 const processPayment = async (req, res) => {
   try {
+    // FIX-BE-PAYMENTS: C-1 Gate dummy payment behind ENABLE_DUMMY_PAYMENTS env flag
+    if (process.env.ENABLE_DUMMY_PAYMENTS !== 'true') {
+      return res.status(503).json({
+        success: false,
+        message: 'Payment processing is not available'
+      });
+    }
+
     const { orderId, paymentId, paymentDetails } = req.body;
 
     if (!orderId || !paymentId) {
@@ -148,7 +157,8 @@ const processPayment = async (req, res) => {
       });
     }
 
-    const order = await Order.findOne({ _id: orderId }).populate('user', 'name email');
+    // FIX-BE-PAYMENTS: C-2 Scope order to authenticated user
+    const order = await Order.findOne({ _id: orderId, user: req.user.id }).populate('user', 'name email');
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -278,7 +288,8 @@ const getPaymentStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
 
-    const order = await Order.findOne({ _id: orderId });
+        // FIX-BE-PAYMENTS: C-2 Scope order to authenticated user
+    const order = await Order.findOne({ _id: orderId, user: req.user.id });
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -318,7 +329,10 @@ const processCOD = async (req, res) => {
       });
     }
 
-    const order = await Order.findOne({ _id: orderId }).populate('user', 'name email');
+    // FIX-BE-PAYMENTS: C-2 Scope order to user if authenticated (guest-safe)
+    const query = { _id: orderId };
+    if (req.user) query.user = req.user.id;
+    const order = await Order.findOne(query).populate('user', 'name email');
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -378,7 +392,10 @@ const createRazorpayOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Order ID is required' });
     }
 
-    const order = await Order.findOne({ _id: orderId });
+    // FIX-BE-PAYMENTS: C-2 Scope order to user if authenticated (guest-safe)
+    const query = { _id: orderId };
+    if (req.user) query.user = req.user.id;
+    const order = await Order.findOne(query);
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
@@ -440,7 +457,10 @@ const verifyRazorpayPayment = async (req, res) => {
       });
     }
 
-    const order = await Order.findOne({ _id: orderId }).populate('user', 'name email');
+    // FIX-BE-PAYMENTS: C-2 Scope order to user if authenticated (guest-safe)
+    const query = { _id: orderId };
+    if (req.user) query.user = req.user.id;
+    const order = await Order.findOne(query).populate('user', 'name email');
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }

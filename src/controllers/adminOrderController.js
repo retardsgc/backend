@@ -234,7 +234,7 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
-    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'refunded', 'partially_refunded']; // FIX-BE-ORDERS: H-9
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -265,9 +265,12 @@ const updateOrderStatus = async (req, res) => {
     const validTransitions = {
       'pending': ['processing', 'shipped', 'cancelled'],
       'processing': ['shipped', 'delivered', 'cancelled'],
-      'shipped': ['delivered', 'cancelled'],
-      'delivered': ['cancelled'], // Allow cancel even after delivery for refund cases
-      'cancelled': [] // Final state - no further changes
+      'shipped': ['delivered', 'cancelled', 'returned', 'refunded', 'partially_refunded'], // FIX-BE-ORDERS: H-9
+      'delivered': ['cancelled', 'returned', 'refunded', 'partially_refunded'], // FIX-BE-ORDERS: H-9
+      'cancelled': ['refunded', 'partially_refunded'], // FIX-BE-ORDERS: H-9
+      'returned': ['refunded', 'partially_refunded'], // FIX-BE-ORDERS: H-9
+      'refunded': [],
+      'partially_refunded': ['refunded'] // FIX-BE-ORDERS: H-9
     };
 
     if (!validTransitions[oldStatus].includes(status)) {
@@ -281,22 +284,24 @@ const updateOrderStatus = async (req, res) => {
 
     // Handle inventory management based on status change
     if (status === 'processing' && oldStatus === 'pending') {
-      // Reserve inventory when processing starts
-      for (const item of order.items) {
-        try {
-          const productId = item.product?._id || item.product;
-          if (productId) {
-            const product = await Product.findById(productId);
-            if (product && product.trackInventory) {
-              await product.reserveInventory(item.quantity);
+      // Reserve inventory when processing starts (skip if already reserved at order creation)
+      if (!order.inventoryReserved) { // FIX-BE-ORDERS: H-15 guard against double reservation
+        for (const item of order.items) {
+          try {
+            const productId = item.product?._id || item.product;
+            if (productId) {
+              const product = await Product.findById(productId);
+              if (product && product.trackInventory) {
+                await product.reserveInventory(item.quantity);
+              }
             }
+          } catch (inventoryError) {
+            console.error('Inventory reservation error:', inventoryError);
+            // Don't fail the status update for inventory errors
           }
-        } catch (inventoryError) {
-          console.error('Inventory reservation error:', inventoryError);
-          // Don't fail the status update for inventory errors
         }
+        order.inventoryReserved = true;
       }
-      order.inventoryReserved = true;
     }
 
     if ((status === 'shipped' && oldStatus === 'processing') || (status === 'shipped' && oldStatus === 'pending')) {
@@ -595,7 +600,7 @@ const bulkUpdateStatus = async (req, res) => {
       });
     }
 
-    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'refunded', 'partially_refunded']; // FIX-BE-ORDERS: H-9
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,

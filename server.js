@@ -53,8 +53,6 @@ const normalizeOrigin = (value) => {
 const fallbackOrigins = [
   process.env.FRONTEND_URL,
   process.env.ADMIN_FRONTEND_URL,
-  'https://nutrinuts-store.vercel.app',
-  'https://nutrinuts-admin.vercel.app',
   'https://frontend-three-eta-33.vercel.app',
   'https://adminfrontend-pi-rosy.vercel.app',
   'http://localhost:5173',
@@ -104,9 +102,8 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Apply general API rate limiting, but keep admin login and stats paths unblocked.
+// Apply general API rate limiting, but keep stats and analytics paths unblocked.
 app.use('/api/', (req, res, next) => {
-  if (req.path === '/admin-auth/login') return next();
   if (req.path.startsWith('/products/stats')) return next();
   if (req.path.startsWith('/analytics')) return next();
   return apiLimiter(req, res, next);
@@ -165,7 +162,7 @@ app.use('/api/auth/signup', createAccountLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/forgotPassword', passwordResetLimiter);
 // Keep admin auth reachable in production; limiter can be re-enabled after proxy tuning.
-// app.use('/api/admin-auth', authLimiter);
+app.use('/api/admin-auth', authLimiter);  // FIX-BE-CONFIG: M-17 Re-enable rate limiter for admin auth
 
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -188,21 +185,6 @@ app.use('/api/payment-settings', paymentSettingsRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/aboutus', aboutUsRoutes);
 app.use('/api/admin-auth', adminAuthRoutes);
-
-// Root URL welcome/status message
-app.get('/', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'NutriNuts E-commerce API is running',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Handle favicon.ico requests gracefully by serving the icon file
-app.get('/favicon.ico', (req, res) => {
-  res.setHeader('Content-Type', 'image/svg+xml');
-  res.sendFile(path.join(__dirname, 'favicon.ico'));
-});
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
@@ -240,10 +222,36 @@ const connectDatabase = async () => {
   process.exit(1);
 };
 
-connectDatabase();
-
+// FIX-BE-CONFIG: H-10 Await database connection before listening
+let server;
 const port = process.env.PORT || 5001;
-app.listen(port, () => {
-  console.log(`App running on port ${port}...`);
-  console.log(`🖼️ Images served from: ${sharedImagesPath} at /api/images`);
+
+connectDatabase()
+  .then(() => {
+    // FIX-BE-CONFIG: L-17 Corrected log message from /api/images to /images
+    server = app.listen(port, () => {
+      console.log(`App running on port ${port}...`);
+      console.log(`Images served from: ${sharedImagesPath} at /images`);
+    });
+  })
+  .catch(err => {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  });
+
+// FIX-BE-CONFIG: L-10 Process-level error handlers
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("UNHANDLED REJECTION! Shutting down...");
+  if (reason) console.error(reason);
+  if (server) {
+    server.close(() => process.exit(1));
+  } else {
+    process.exit(1);
+  }
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION! Shutting down...");
+  console.error(err);
+  process.exit(1);
 });

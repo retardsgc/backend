@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protectAdmin } = require('../middleware/adminAuth'); // FIX-BE-ROUTES: C-3
 const SiteConfig = require('../models/SiteConfig');
 
 // GET - Fetch AboutUs content from SiteConfig (public)
@@ -17,7 +18,7 @@ router.get('/', async (req, res) => {
 });
 
 // PUT - Update AboutUs content in SiteConfig (admin)
-router.put('/', async (req, res) => {
+router.put('/', protectAdmin, async (req, res) => {
   try {
     let aboutUsConfig = await SiteConfig.findOne({ key: 'aboutUs' });
     

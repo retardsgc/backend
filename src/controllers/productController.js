@@ -1,5 +1,19 @@
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const jwt = require('jsonwebtoken');
+
+const isAdminRequest = (req) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return false;
+    const token = authHeader.split(' ')[1];
+    if (!token) return false;
+    const decoded = jwt.verify(token, process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET);
+    return !!decoded.id;
+  } catch (e) {
+    return false;
+  }
+};
 
 // @desc    Get all products with optional filtering and pagination
 // @route   GET /api/products
@@ -23,21 +37,22 @@ const getAllProducts = async (req, res) => {
       sort = 'createdAt',
       order = 'desc',
       search,
-      admin = 'false' // Admin flag to include products from disabled categories
     } = req.query;
+    const isAdmin = isAdminRequest(req);
 
     // Build filter query
     const filter = {};
 
     // For public access, only show products from active categories
-    if (admin !== 'true') {
+    let activeCategoryIds = [];
+    if (!isAdmin) {
       const activeCategories = await Category.find({ status: 'active' }).select('_id');
-      const activeCategoryIds = activeCategories.map(cat => cat._id);
+      activeCategoryIds = activeCategories.map(cat => cat._id);
       filter.categoryId = { $in: activeCategoryIds };
     }
 
     if (category) {
-      if (admin === 'true') {
+      if (isAdmin) {
         filter.categoryId = category;
       } else {
         // Verify the category is active for public access
@@ -54,6 +69,7 @@ const getAllProducts = async (req, res) => {
 
     if (hotDeal === 'true') filter.hotDeal = true;
     if (bestseller === 'true') filter.bestseller = true;
+    if (req.query.onSale === 'true') filter.$expr = { $gt: ['$originalPrice', '$price'] };
     if (inStock === 'true') filter.inStock = true;
 
     // Price range filter
@@ -146,7 +162,7 @@ const getAllProducts = async (req, res) => {
 
     // Get price range for filters
     const priceStats = await Product.aggregate([
-      { $match: admin !== 'true' ? { categoryId: { $in: filter.categoryId?.$in || [] } } : {} },
+      { $match: !isAdmin ? { categoryId: { $in: filter.categoryId?.$in || [] } } : {} },
       {
         $group: {
           _id: null,
@@ -175,7 +191,7 @@ const getAllProducts = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching products',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -225,7 +241,7 @@ const getProductById = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching product',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -271,7 +287,7 @@ const getProductsByCategory = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching products by category',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -297,7 +313,7 @@ const getHotDealProducts = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching hot deal products',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -323,7 +339,7 @@ const getBestsellerProducts = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching bestseller products',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -388,7 +404,7 @@ const searchProducts = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error searching products',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -417,7 +433,7 @@ const getProductStats = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching product statistics',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -457,7 +473,7 @@ const getRelatedProducts = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching related products',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -520,7 +536,7 @@ const createProduct = async (req, res) => {
     res.status(400).json({
       success: false,
       message: 'Error creating product',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -602,7 +618,7 @@ const updateProduct = async (req, res) => {
     res.status(400).json({
       success: false,
       message: 'Error updating product',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -643,7 +659,7 @@ const deleteProduct = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error deleting product',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -683,7 +699,7 @@ const updateProductStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error updating product status',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

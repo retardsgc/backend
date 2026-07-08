@@ -21,7 +21,8 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Check if user still exists
-    const currentUser = await User.findById(decoded.id);
+    // FIX-BE-AUTH: H-3 Exclude password hash from the loaded user document
+    const currentUser = await User.findById(decoded.id).select('-password');
     if (!currentUser) {
       return res.status(401).json({
         success: false,

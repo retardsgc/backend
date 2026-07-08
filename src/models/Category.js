@@ -105,8 +105,9 @@ categorySchema.virtual('id').get(function() {
   return this._id ? this._id.toHexString() : null;
 });
 
-// Pre-save middleware to generate slug from name if not provided
-categorySchema.pre('save', function(next) {
+// Pre-validate middleware to generate slug from name if not provided
+// Must run before validation (not pre('save')) because slug has required: true
+categorySchema.pre('validate', function(next) {
   if (!this.slug && this.name) {
     this.slug = this.name
       .toLowerCase()

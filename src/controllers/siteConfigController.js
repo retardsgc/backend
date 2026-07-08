@@ -24,19 +24,7 @@ const DEFAULT_SECTIONS = {
     ],
     footerNav: []
   },
-  hero: { slides: [] },
-  productpages: {
-    listing: {
-      title: 'Premium Dry Fruits & Nuts',
-      description: 'Discover our finest selection of premium dry fruits, nuts, and healthy snacks at unbeatable prices'
-    }
-  },
-  productPages: {
-    listing: {
-      title: 'Premium Dry Fruits & Nuts',
-      description: 'Discover our finest selection of premium dry fruits, nuts, and healthy snacks at unbeatable prices'
-    }
-  }
+  hero: { slides: [] }
 };
 
 // @desc    Get all site configuration or specific config by key
@@ -58,21 +46,10 @@ const getSiteConfig = async (req, res) => {
           return res.status(200).json({ success: true, data: consolidated.config, version: consolidated.version, lastUpdated: consolidated.updatedAt });
         }
 
-        let section = consolidated.config?.[key];
-        if (section === undefined) {
-          section = consolidated.config?.[keyLower];
-        }
-        if (section === undefined) {
-          // Look up case-insensitively
-          const matchedKey = Object.keys(consolidated.config || {}).find(k => k.toLowerCase() === keyLower);
-          if (matchedKey) {
-            section = consolidated.config[matchedKey];
-          }
-        }
-
+        const section = consolidated.config?.[keyLower];
         if (section === undefined) {
           // Return minimal defaults for known sections instead of 404
-          const defaults = DEFAULT_SECTIONS[keyLower] || DEFAULT_SECTIONS[key];
+          const defaults = DEFAULT_SECTIONS[keyLower];
           if (defaults) {
             return res.status(200).json({ success: true, data: defaults, version: consolidated.version, lastUpdated: consolidated.updatedAt });
           }
@@ -81,14 +58,11 @@ const getSiteConfig = async (req, res) => {
         return res.status(200).json({ success: true, data: section, version: consolidated.version, lastUpdated: consolidated.updatedAt });
       }
 
-      // Legacy per-key documents fallback (case-insensitive regex)
-      const config = await SiteConfig.findOne({ 
-        key: { $regex: new RegExp(`^${key}$`, 'i') }, 
-        isActive: true 
-      });
+      // Legacy per-key documents fallback
+      const config = await SiteConfig.findOne({ key: keyLower, isActive: true });
       if (!config) {
         // Return minimal defaults for known sections instead of 404 (no version info)
-        const defaults = DEFAULT_SECTIONS[keyLower] || DEFAULT_SECTIONS[key];
+        const defaults = DEFAULT_SECTIONS[keyLower];
         if (defaults) {
           return res.status(200).json({ success: true, data: defaults });
         }

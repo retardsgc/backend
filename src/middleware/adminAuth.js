@@ -24,7 +24,8 @@ exports.protectAdmin = async (req, res, next) => {
 
     try {
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // FIX-BE-AUTH: H-2 Use ADMIN_JWT_SECRET with JWT_SECRET fallback for admin token isolation
+      const decoded = jwt.verify(token, process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET);
 
       // Get admin from database
       const admin = await Admin.findById(decoded.id).select('-password');
@@ -80,8 +81,13 @@ exports.requireSuperAdmin = (req, res, next) => {
   next();
 };
 
-// Generate JWT token for admin (no expiration - admin sessions last forever)
+// Generate JWT token for admin
+// FIX-BE-AUTH: H-1 Added expiresIn: '24h' so admin tokens expire
+// FIX-BE-AUTH: H-2 Use ADMIN_JWT_SECRET with JWT_SECRET fallback
 exports.generateAdminToken = (adminId) => {
-  return jwt.sign({ id: adminId }, process.env.JWT_SECRET);
-  // No expiresIn = token never expires
+  return jwt.sign(
+    { id: adminId },
+    process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET,
+    { expiresIn: '24h' }
+  );
 };

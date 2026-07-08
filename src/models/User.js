@@ -54,6 +54,8 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Please provide your email'],
     unique: true,
     lowercase: true,
+    // FIX-BE-MODELS: L-9 Added email format validation
+    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address'],
   },
   role: {
     type: String,
@@ -84,7 +86,6 @@ const userSchema = new mongoose.Schema({
   },
   passwordConfirm: {
     type: String,
-    required: [true, 'Please confirm your password'],
     validate: {
       validator: function(el) {
         return el === this.password;
@@ -118,6 +119,9 @@ const userSchema = new mongoose.Schema({
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+}, {
+  // FIX-BE-MODELS: L-9 Added timestamps option
+  timestamps: true
 });
 
 // Index for faster cart item lookups/updates by product
