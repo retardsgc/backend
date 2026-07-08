@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { sendEmail } = require('../utils/email');
+const Otp = require('../models/Otp');
 
 // Store pending registrations temporarily (email -> { otp, otpExpires, verified })
 const pendingVerifications = new Map();
@@ -56,6 +57,13 @@ const sendOTP = async (req, res) => {
       otpExpires,
       verified: false
     });
+
+    // Store in MongoDB Atlas Otp collection so user can query it directly
+    await Otp.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { otp, createdAt: new Date() },
+      { upsert: true, new: true }
+    );
 
     // Email content
     const message = `Your verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this code, please ignore this email.`;
@@ -227,6 +235,13 @@ const resendOTP = async (req, res) => {
       verified: false
     });
 
+    // Store in MongoDB Atlas Otp collection so user can query it directly
+    await Otp.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { otp, createdAt: new Date() },
+      { upsert: true, new: true }
+    );
+
     // Email content
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -345,6 +360,7 @@ const signup = async (req, res) => {
 
     // Clean up pending verification
     pendingVerifications.delete(email.toLowerCase());
+    await Otp.deleteOne({ email: email.toLowerCase() });
 
     // Generate JWT token
     const token = jwt.sign(
