@@ -1,25 +1,43 @@
 const mongoose = require('mongoose');
 
+const getDbCandidates = () => {
+  const configuredDB = process.env.DATABASE || process.env.MONGODB_URI;
+  const localCandidates = [
+    process.env.DATABASE_LOCAL,
+    'mongodb://localhost:27017/ecommerce',
+    'mongodb://localhost:28000/ecommerce',
+    'mongodb://127.0.0.1:27017/ecommerce',
+    'mongodb://127.0.0.1:28000/ecommerce'
+  ].filter(Boolean);
+
+  if (process.env.USE_LOCAL_DB === 'true') {
+    return configuredDB ? [...localCandidates, configuredDB] : localCandidates;
+  }
+  return configuredDB ? [configuredDB, ...localCandidates] : localCandidates;
+};
+
 // MongoDB connection configuration
 const connectDB = async () => {
-  try {
-    // MongoDB connection URI for the local instance
-    const mongoURI = process.env.MONGODB_URI || process.env.DATABASE || 'mongodb://localhost:27017/ecommerce';
-    
-    // Connect to MongoDB
-    const conn = await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+  const dbCandidates = getDbCandidates();
+  let lastError = null;
 
-    console.log(`MongoDB Connected: ${conn.connection.host}:${conn.connection.port}`);
-    console.log(`Database: ${conn.connection.name}`);
-    
-    return conn;
-  } catch (error) {
-    console.error('MongoDB connection error:', error.message);
-    process.exit(1);
+  for (const dbUri of dbCandidates) {
+    try {
+      const conn = await mongoose.connect(dbUri, {
+        serverSelectionTimeoutMS: 5000 // 5 seconds timeout for faster fallback
+      });
+
+      console.log(`MongoDB Connected: ${conn.connection.host}:${conn.connection.port}`);
+      console.log(`Database: ${conn.connection.name}`);
+      return conn;
+    } catch (error) {
+      lastError = error;
+      console.error(`MongoDB connection attempt failed for ${dbUri}:`, error.message);
+    }
   }
+
+  console.error('MongoDB connection error:', lastError.message);
+  process.exit(1);
 };
 
 // Connection event handlers

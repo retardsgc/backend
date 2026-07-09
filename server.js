@@ -192,29 +192,37 @@ app.all('*', (req, res, next) => {
 
 app.use(globalErrorHandler);
 
-const configuredDB = process.env.DATABASE || process.env.MONGODB_URI;
-const defaultLocalDB = 'mongodb://localhost:27017/ecommerce';
+const getDbCandidates = () => {
+  const configuredDB = process.env.DATABASE || process.env.MONGODB_URI;
+  const localCandidates = [
+    process.env.DATABASE_LOCAL,
+    'mongodb://localhost:27017/ecommerce',
+    'mongodb://localhost:28000/ecommerce',
+    'mongodb://127.0.0.1:27017/ecommerce',
+    'mongodb://127.0.0.1:28000/ecommerce'
+  ].filter(Boolean);
 
-// Try configured DB first, then fall back to default local MongoDB for easier setup on new machines.
-const dbCandidates = configuredDB
-  ? [configuredDB, ...(configuredDB !== defaultLocalDB ? [defaultLocalDB] : [])]
-  : [defaultLocalDB];
+  if (process.env.USE_LOCAL_DB === 'true') {
+    return configuredDB ? [...localCandidates, configuredDB] : localCandidates;
+  }
+  return configuredDB ? [configuredDB, ...localCandidates] : localCandidates;
+};
 
-if (!configuredDB) {
-  console.warn(`DATABASE/MONGODB_URI not found. Falling back to ${defaultLocalDB}`);
-}
+const dbCandidates = getDbCandidates();
 
 const connectDatabase = async () => {
   let lastError = null;
 
   for (const dbUri of dbCandidates) {
     try {
-      await mongoose.connect(dbUri);
+      await mongoose.connect(dbUri, {
+        serverSelectionTimeoutMS: 5000 // 5 seconds timeout for faster fallback
+      });
       console.log(`DB connection successful! (${dbUri})`);
       return;
     } catch (err) {
       lastError = err;
-      console.error(`DB connection attempt failed: ${dbUri}`);
+      console.error(`DB connection attempt failed: ${dbUri} - ${err.message}`);
     }
   }
 
