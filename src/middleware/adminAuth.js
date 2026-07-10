@@ -44,6 +44,14 @@ exports.protectAdmin = async (req, res, next) => {
         });
       }
 
+      // FIX-BE-AUTH: L-4 Reject tokens with stale tokenVersion (after logout)
+      if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== admin.tokenVersion) {
+        return res.status(401).json({
+          success: false,
+          message: 'Token is no longer valid. Please login again.'
+        });
+      }
+
       // Attach admin to request object
       req.admin = admin;
       next();
@@ -84,9 +92,10 @@ exports.requireSuperAdmin = (req, res, next) => {
 // Generate JWT token for admin
 // FIX-BE-AUTH: H-1 Added expiresIn: '24h' so admin tokens expire
 // FIX-BE-AUTH: H-2 Use ADMIN_JWT_SECRET with JWT_SECRET fallback
-exports.generateAdminToken = (adminId) => {
+// FIX-BE-AUTH: L-4 Include tokenVersion for logout invalidation (caller should pass admin.tokenVersion)
+exports.generateAdminToken = (adminId, tokenVersion = 0) => {
   return jwt.sign(
-    { id: adminId },
+    { id: adminId, tokenVersion },
     process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET,
     { expiresIn: '24h' }
   );

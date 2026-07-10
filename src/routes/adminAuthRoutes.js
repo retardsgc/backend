@@ -63,7 +63,8 @@ router.post('/login', async (req, res) => {
 
     // FIX-BE-AUTH: H-1 Added expiresIn: '24h'
     // FIX-BE-AUTH: H-2 Use ADMIN_JWT_SECRET with JWT_SECRET fallback
-    const token = jwt.sign({ id: String(admin._id) }, process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET, { expiresIn: '24h' });
+    // FIX-BE-AUTH: L-4 Include tokenVersion for logout invalidation
+    const token = jwt.sign({ id: String(admin._id), tokenVersion: admin.tokenVersion || 0 }, process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET, { expiresIn: '24h' });
 
     return res.status(200).json({
       success: true,

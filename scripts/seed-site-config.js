@@ -29,10 +29,7 @@ const siteConfigs = [
           { name: 'About', link: '/about' },
           { name: 'Contact', link: '/contact' },
         ],
-        footerNav: [
-          { text: 'Privacy Policy', href: '/privacy' },
-          { text: 'Terms of Service', href: '/terms' },
-        ],
+        // footerNav removed (L-15: no frontend consumer exists)
       },
       announcementbar: {
         enabled: true,

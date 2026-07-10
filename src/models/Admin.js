@@ -44,6 +44,11 @@ const adminSchema = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Admin'
+  },
+  // FIX-BE-AUTH: L-4 tokenVersion for logout server-side invalidation
+  tokenVersion: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

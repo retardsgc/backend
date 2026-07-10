@@ -64,7 +64,8 @@ exports.login = async (req, res) => {
     // Generate token
     // FIX-BE-AUTH: H-1 Added expiresIn: '24h'
     // FIX-BE-AUTH: H-2 Use ADMIN_JWT_SECRET with JWT_SECRET fallback
-    const token = jwt.sign({ id: String(admin._id) }, process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET, { expiresIn: '24h' });
+    // FIX-BE-AUTH: L-4 Include tokenVersion for logout invalidation
+    const token = jwt.sign({ id: String(admin._id), tokenVersion: admin.tokenVersion || 0 }, process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET, { expiresIn: '24h' });
 
     res.status(200).json({
       success: true,
@@ -258,10 +259,14 @@ exports.deactivateAdmin = async (req, res) => {
 };
 
 // @route   POST /api/admin-auth/logout
-// @desc    Logout admin
+// @desc    Logout admin (invalidates existing tokens via tokenVersion bump)
 // @access  Private (Admin)
 exports.logout = async (req, res) => {
   try {
+    // FIX-BE-AUTH: L-4 Increment tokenVersion to invalidate all existing tokens
+    const Admin = require('../models/Admin');
+    await Admin.findByIdAndUpdate(req.admin._id, { $inc: { tokenVersion: 1 } });
+
     res.status(200).json({
       success: true,
       message: 'Logout successful'

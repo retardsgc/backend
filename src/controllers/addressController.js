@@ -61,7 +61,7 @@ const addAddress = async (req, res) => {
       city,
       state,
       postalCode,
-      country: country || 'United States',
+      country: country || 'India',
       isDefault: shouldBeDefault
     };
 

@@ -97,8 +97,19 @@ const seedSiteConfigs = async () => {
       }
     ];
 
-    // Insert all configurations
-    const results = await SiteConfig.insertMany(configs);
+    // Filter out configs where data is undefined (siteConfig.json only has hero defined)
+    const validConfigs = configs.filter(c => {
+      if (c.config === undefined || c.config === null) {
+        console.warn(`   ⚠️  Skipping "${c.key}" — no data in siteConfig.json (config is undefined)`);
+        return false;
+      }
+      return true;
+    });
+
+    console.log(`\n   Inserting ${validConfigs.length} valid configs (skipped ${configs.length - validConfigs.length} undefined)...`);
+
+    // Insert only valid configurations
+    const results = validConfigs.length > 0 ? await SiteConfig.insertMany(validConfigs) : [];
     
     console.log(`✅ Successfully seeded ${results.length} site configurations:`);
     results.forEach(config => {
@@ -129,6 +140,7 @@ const seedSiteConfigs = async () => {
 // Main execution
 const main = async () => {
   try {
+    console.warn('⚠️  DEPRECATED: Use `npm run seed:config` (seed-site-config.js) instead. This script uses per-key strategy with incomplete siteConfig.json.');
     await connectDB();
     await clearExistingConfigs();
     await seedSiteConfigs();

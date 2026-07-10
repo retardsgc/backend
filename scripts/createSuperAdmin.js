@@ -7,10 +7,10 @@ dotenv.config({ path: path.join(__dirname, '../config.env') });
 
 const Admin = require('../src/models/Admin');
 
-// Super Admin credentials
+// Super Admin credentials (override via SUPERADMIN_USERNAME / SUPERADMIN_PASSWORD env vars)
 const superAdmin = {
-  username: 'superadmin',
-  password: 'Admin@12345',  // Strong default password
+  username: process.env.SUPERADMIN_USERNAME || 'superadmin',
+  password: process.env.SUPERADMIN_PASSWORD || 'Admin@12345',  // Strong default password
   name: 'Super Administrator',
   email: 'admin@ecmous.com',
   priority: 1,

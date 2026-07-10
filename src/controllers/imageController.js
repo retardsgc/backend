@@ -101,13 +101,7 @@ const uploadImages = async (req, res) => {
         { upsert: true, new: true }
       );
 
-      // Clean up the temporary file from local disk to keep local storage clean
-      try {
-        await fs.unlink(file.path);
-      } catch (err) {
-        console.error('Error deleting temp upload file:', err.message);
-      }
-
+      // FIX-BE-IMAGES: M-9 Keep disk copy for express.static fallback (don't unlink)
       uploadedFiles.push({
         name: file.filename,
         originalName: file.originalname,

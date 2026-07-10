@@ -120,7 +120,9 @@ const Image = require('./src/models/Image');
 app.get('/images/:filename(*)', async (req, res, next) => {
   try {
     const filename = req.params.filename;
-    const img = await Image.findOne({ name: filename });
+    // FIX-BE-IMAGES: M-6 Normalize path — query with basename to match both seeded relative paths and upload basenames
+    const basename = path.basename(filename);
+    const img = await Image.findOne({ $or: [{ name: filename }, { name: basename }] });
     if (img) {
       res.set('Content-Type', img.contentType);
       return res.send(img.data);

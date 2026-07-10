@@ -54,64 +54,59 @@ const seedFeaturesSection = async () => {
   try {
     console.log('🌱 Starting Features Section seeding...');
 
-    // Check if homepage config exists
-    let homepageConfig = await SiteConfig.findOne({ key: 'homepage' });
+    // FIX-BE-SEED: C-7 Write to consolidated key:'all' document instead of per-key 'homepage'
+    let allConfig = await SiteConfig.findOne({ key: 'all' });
     
-    if (homepageConfig) {
-      // Update existing homepage config
-      if (!homepageConfig.config.featuresSection) {
-        homepageConfig.config.featuresSection = featuresData;
-        await homepageConfig.save();
-        console.log('✅ Added Features Section to existing homepage config');
-      } else {
-        // Merge with existing features section, preserving any custom data
-        const existingFeatures = homepageConfig.config.featuresSection;
-        homepageConfig.config.featuresSection = {
-          ...featuresData,
-          ...existingFeatures,
-          features: existingFeatures.features && existingFeatures.features.length > 0 
-            ? existingFeatures.features 
-            : featuresData.features
-        };
-        await homepageConfig.save();
-        console.log('✅ Updated existing Features Section in homepage config');
+    if (allConfig) {
+      // Update existing consolidated config
+      if (!allConfig.config.homepage) {
+        allConfig.config.homepage = {};
       }
+      allConfig.config.homepage.featuresSection = featuresData;
+      await allConfig.save();
+      console.log('✅ Added/updated Features Section in consolidated config (key:all → homepage.featuresSection)');
     } else {
-      // Create new homepage config with features section
-      const newHomepageConfig = new SiteConfig({
-        key: 'homepage',
+      // Create new consolidated config with homepage.featuresSection
+      const newAllConfig = new SiteConfig({
+        key: 'all',
         config: {
-          featuresSection: featuresData,
-          hotDealsSection: {
-            title: 'Hot Deals',
-            subtitle: 'Check out our latest offers and save big!',
-            enabled: true,
-            productIds: []
-          },
-          testimonialSection: {
-            title: 'What Our Customers Say',
-            navigationLabels: { previous: 'Previous', next: 'Next' },
-            testimonials: []
-          },
-          featuredCollections: {
-            title: 'Featured Collections',
-            collections: []
+          homepage: {
+            featuresSection: featuresData,
+            hotDealsSection: {
+              title: 'Hot Deals',
+              subtitle: 'Check out our latest offers and save big!',
+              enabled: true,
+              productIds: []
+            },
+            testimonialSection: {
+              title: 'What Our Customers Say',
+              navigationLabels: { previous: 'Previous', next: 'Next' },
+              testimonials: []
+            },
+            featuredCollections: {
+              title: 'Featured Collections',
+              collections: []
+            }
           }
         },
         version: 1,
         isActive: true
       });
       
-      await newHomepageConfig.save();
-      console.log('✅ Created new homepage config with Features Section');
+      await newAllConfig.save();
+      console.log('✅ Created new consolidated config with Features Section');
     }
 
     console.log('🎉 Features Section seeding completed successfully!');
     
     // Display the seeded data
-    const updatedConfig = await SiteConfig.findOne({ key: 'homepage' });
+    const updatedConfig = await SiteConfig.findOne({ key: 'all' });
     console.log('\n📋 Current Features Section data:');
-    console.log(JSON.stringify(updatedConfig.config.featuresSection, null, 2));
+    if (updatedConfig && updatedConfig.config && updatedConfig.config.homepage) {
+      console.log(JSON.stringify(updatedConfig.config.homepage.featuresSection, null, 2));
+    } else {
+      console.log('   (config not found)');
+    }
     
   } catch (error) {
     console.error('❌ Error seeding Features Section:', error);
