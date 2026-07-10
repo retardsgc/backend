@@ -12,6 +12,7 @@ const {
   updatePassword
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
+const { validateSignup, validateLogin } = require('../middleware/validator');
 
 const router = express.Router();
 
@@ -21,8 +22,8 @@ router.post('/verify-otp', verifyOTP);
 router.post('/resend-otp', resendOTP);
 
 // Public routes - Authentication
-router.post('/signup', signup);
-router.post('/login', login);
+router.post('/signup', validateSignup, signup);
+router.post('/login', validateLogin, login);
 router.post('/forgotPassword', forgotPassword);
 router.patch('/resetPassword/:token', resetPassword);
 

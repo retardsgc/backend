@@ -4,7 +4,7 @@ const SiteConfig = require('../src/models/SiteConfig');
 // Enhanced footer configuration
 const footerConfig = {
   footer: {
-    copyright: '© 2024 TechCart. All Rights Reserved.',
+    copyright: '© 2024 NutriNuts. All Rights Reserved.',
     getDirectionText: 'Get Direction',
     getDirectionLink: 'https://www.google.com/maps',
     newsletter: {
@@ -14,10 +14,10 @@ const footerConfig = {
       buttonText: 'Subscribe'
     },
     socialMedia: {
-      youtube: { url: 'https://youtube.com/@techcart', enabled: true },
-      facebook: { url: 'https://facebook.com/techcart', enabled: true },
-      instagram: { url: 'https://instagram.com/techcart', enabled: true },
-      telegram: { url: 'https://t.me/techcart', enabled: true }
+      youtube: { url: 'https://youtube.com/@nutrinuts', enabled: true },
+      facebook: { url: 'https://facebook.com/nutrinuts', enabled: true },
+      instagram: { url: 'https://instagram.com/nutrinuts', enabled: true },
+      telegram: { url: 'https://t.me/nutrinuts', enabled: true }
     },
     sections: [
       {
@@ -40,14 +40,14 @@ const footerConfig = {
   },
   company: {
     address: {
-      street: '123 Tech Street',
-      city: 'San Francisco',
-      state: 'CA',
-      zip: '94105'
+      street: '123 Market Street',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      zip: '400001'
     },
     contact: {
-      email: 'info@techcart.com',
-      phone: '(555) 123-4567'
+      email: 'info@nutrinuts.com',
+      phone: '+91 98765 43210'
     }
   }
   
@@ -57,7 +57,7 @@ const footerConfig = {
 async function seedFooterData() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.DATABASE || 'mongodb://localhost:28000/ecommerce');
+    await mongoose.connect(process.env.DATABASE || 'mongodb://localhost:27017/ecommerce');
     console.log('✅ Connected to MongoDB');
 
     // Find or create the main site config

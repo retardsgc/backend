@@ -1,5 +1,6 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
+const { validateOrder, validateMongoId } = require('../middleware/validator');
 const {
   createDirectOrder,
   createOrderFromCart,
@@ -17,17 +18,17 @@ const {
 const router = express.Router();
 
 // Guest routes (no auth required)
-router.post('/guest', createGuestOrder);
+router.post('/guest', validateOrder, createGuestOrder);
 router.get('/guest', (req, res) => res.status(405).json({ success: false, message: 'Use POST /api/orders/guest to place a guest order.' }));
 router.get('/guest/:id', getGuestOrder);
 
 router.use(protect);
 
 // Create order directly from product selection
-router.post('/direct', createDirectOrder);
+router.post('/direct', validateOrder, createDirectOrder);
 
 // Create order from the current cart
-router.post('/', createOrderFromCart);
+router.post('/', validateOrder, createOrderFromCart);
 
 // Get my orders
 router.get('/', getMyOrders);
@@ -45,10 +46,10 @@ router.post('/:id/return', requestReturn);
 router.post('/:id/reorder', reorderFromOrder);
 
 // Get specific order by id
-router.get('/:id', getOrderById);
+router.get('/:id', validateMongoId, getOrderById);
 
 // Cancel my order (if pending)
-router.patch('/:id/cancel', cancelMyOrder);
+router.patch('/:id/cancel', validateMongoId, cancelMyOrder);
 
 module.exports = router;
 

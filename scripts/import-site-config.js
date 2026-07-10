@@ -13,7 +13,7 @@ const SiteConfig = require('../src/models/SiteConfig');
 
 const DB_CANDIDATES = [
   process.env.DATABASE,
-  'mongodb://localhost:28000/ecommerce',
+  'mongodb://localhost:27017/ecommerce',
   'mongodb://localhost:27017/ecommerce',
 ].filter(Boolean);
 

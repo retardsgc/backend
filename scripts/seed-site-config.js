@@ -11,8 +11,7 @@ const siteConfigs = [
     config: {
       branding: {
         logo: {
-          light: '/logo.svg',
-          dark: '/logo-dark.svg',
+          url: '/logo.svg',
           alt: 'NutriNuts Logo',
         },
         faviconUrl: '/favicon.ico',
@@ -37,7 +36,7 @@ const siteConfigs = [
       },
       announcementbar: {
         enabled: true,
-        text: 'Free shipping on all orders over ₹500!',
+        announcements: ['Free shipping on all orders over ₹500!'],
         backgroundColor: '#2c3bc5',
         textColor: '#ffffff',
       },

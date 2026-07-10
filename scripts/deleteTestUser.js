@@ -7,7 +7,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', 'config.env') });
 const User = require('../src/models/User');
 const Order = require('../src/models/Order');
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:28000/ecommerce';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce';
 const TEST_EMAIL = 'srik27600@gmail.com';
 
 async function deleteTestUser() {

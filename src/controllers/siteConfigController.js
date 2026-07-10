@@ -10,7 +10,7 @@ const DEFAULT_SECTIONS = {
   },
   announcementbar: {
     enabled: false,
-    text: ''
+    announcements: []
   },
   homepage: {
     heroEnabled: true,
@@ -120,11 +120,11 @@ const getSiteConfig = async (req, res) => {
 // @access  Private (Admin only - TODO: add authentication)
 const upsertSiteConfig = async (req, res) => {
   try {
-    const { key } = req.params;
+    const key = req.params.key || 'all';
     const { config, version } = req.body;
     
-    if (!key || !config) {
-      return res.status(400).json({ success: false, message: 'Key and config data are required' });
+    if (!config) {
+      return res.status(400).json({ success: false, message: 'Config data is required' });
     }
     
     const configKey = key.toLowerCase();
@@ -370,8 +370,8 @@ const validateSiteConfig = async (req, res) => {
       }
 
       if (config.branding.logo) {
-        if (!config.branding.logo.light || !config.branding.logo.dark) {
-          warnings.push('Both light and dark logo variants should be provided');
+        if (!config.branding.logo.url) {
+          warnings.push('Logo URL should be provided');
         }
       }
     }

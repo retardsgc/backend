@@ -10,7 +10,9 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:5177',
-    'http://localhost:5174'
+    'http://localhost:5174',
+    'http://localhost:8090',
+    'http://localhost:8091'
   ],
   credentials: true
 }));
@@ -71,7 +73,7 @@ app.get('/api/siteconfig/:key', async (req, res) => {
 // Connect to MongoDB and start server
 async function startServer() {
   try {
-    await mongoose.connect(process.env.DATABASE || 'mongodb://localhost:28000/ecommerce');
+    await mongoose.connect(process.env.DATABASE || 'mongodb://localhost:27017/ecommerce');
     console.log('✅ Connected to MongoDB');
     
     const port = 5001;

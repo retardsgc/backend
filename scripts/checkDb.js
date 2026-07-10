@@ -8,7 +8,7 @@ const Order = require('../src/models/Order');
 const SiteConfig = require('../src/models/SiteConfig');
 
 async function main() {
-  const uri = process.env.DATABASE || 'mongodb://localhost:28000/ecommerce';
+  const uri = process.env.DATABASE || 'mongodb://localhost:27017/ecommerce';
   console.log('Connecting to MongoDB:', uri);
   await mongoose.connect(uri);
   console.log('Connected. DB:', mongoose.connection.name);

@@ -191,7 +191,11 @@ const productSchema = new Schema({
   features: [{
     type: String,
     trim: true
-  }]
+  }],
+  currency: {
+    type: String,
+    default: 'INR'
+  }
 }, {
   timestamps: true // Adds createdAt and updatedAt fields
 });

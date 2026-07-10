@@ -7,7 +7,7 @@ dotenv.config({ path: path.join(__dirname, '..', 'config.env') });
 
 const Image = require('../src/models/Image');
 
-const DB = process.env.DATABASE || 'mongodb://localhost:28000/ecommerce';
+const DB = process.env.DATABASE || 'mongodb://localhost:27017/ecommerce';
 const imagesDir = path.join(__dirname, '..', '..', 'images');
 
 const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico'];

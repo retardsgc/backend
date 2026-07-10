@@ -794,7 +794,7 @@ const updateOrderItems = async (req, res) => {
     // Recalculate totals
     let subtotal = 0;
     for (const item of order.items) {
-      subtotal += item.itemTotal;
+      subtotal = Math.round((subtotal + item.itemTotal) * 100) / 100;
     }
 
     const shipping = subtotal > 50 ? 0 : 10; // Free shipping over ₹50

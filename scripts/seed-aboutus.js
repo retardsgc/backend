@@ -64,7 +64,7 @@ const aboutUsData = {
 async function seedAboutUs() {
   try {
     // Connect to MongoDB
-    const mongoUri = process.env.DATABASE || 'mongodb://localhost:28000/ecommerce';
+    const mongoUri = process.env.DATABASE || 'mongodb://localhost:27017/ecommerce';
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB');
 

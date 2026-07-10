@@ -22,43 +22,43 @@ const featuredCollectionsData = {
   collections: [
     {
       id: 1,
-      title: 'Electronics & Gadgets',
-      subtitle: 'Latest Technology',
-      description: 'Discover cutting-edge electronics and smart gadgets that make life easier and more enjoyable.',
+      title: 'Premium Almonds',
+      subtitle: 'California Grown',
+      description: 'Rich in Vitamin E and antioxidants, our premium California almonds are the perfect daily superfood.',
       image: 'IMAGE_11.png',
-      buttonText: 'Shop Electronics',
-      buttonLink: '/collections/electronics',
-      gradient: 'from-blue-500 to-purple-600'
+      buttonText: 'Shop Almonds',
+      buttonLink: '/collections/almonds',
+      gradient: 'from-amber-500 to-yellow-600'
     },
     {
       id: 2,
-      title: 'Fashion & Style',
-      subtitle: 'Trendy Apparel',
-      description: 'Stay ahead of fashion trends with our curated collection of stylish clothing and accessories.',
+      title: 'Medjool Dates',
+      subtitle: 'Naturally Sweet',
+      description: 'Enjoy the rich, caramel-like flavor of our premium Medjool dates, nature\'s candy packed with fiber and minerals.',
       image: 'IMAGE_11.png',
-      buttonText: 'Explore Fashion',
-      buttonLink: '/collections/fashion',
-      gradient: 'from-pink-500 to-red-600'
+      buttonText: 'Shop Dates',
+      buttonLink: '/collections/dates',
+      gradient: 'from-brown-500 to-amber-600'
     },
     {
       id: 3,
-      title: 'Home & Living',
-      subtitle: 'Comfort & Style',
-      description: 'Transform your living space with our beautiful home decor and furniture collection.',
+      title: 'Gift Combos',
+      subtitle: 'Perfect Gifting',
+      description: 'Curated gift boxes featuring our finest dry fruits and nuts, beautifully packaged for every occasion.',
       image: 'IMAGE_11.png',
-      buttonText: 'Shop Home',
-      buttonLink: '/collections/home',
-      gradient: 'from-green-500 to-teal-600'
+      buttonText: 'Shop Gifts',
+      buttonLink: '/collections/gifts',
+      gradient: 'from-red-500 to-rose-600'
     },
     {
       id: 4,
-      title: 'Sports & Fitness',
-      subtitle: 'Active Lifestyle',
-      description: 'Gear up for your fitness journey with our premium sports and workout equipment.',
+      title: 'Mixed Nuts',
+      subtitle: 'Trail Mix Favorites',
+      description: 'Our signature blend of cashews, almonds, pistachios, and walnuts — roasted to perfection.',
       image: 'IMAGE_11.png',
-      buttonText: 'Get Active',
-      buttonLink: '/collections/sports',
-      gradient: 'from-orange-500 to-yellow-600'
+      buttonText: 'Shop Mixed Nuts',
+      buttonLink: '/collections/mixed-nuts',
+      gradient: 'from-green-500 to-teal-600'
     }
   ]
 };

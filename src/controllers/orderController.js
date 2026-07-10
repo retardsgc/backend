@@ -76,7 +76,7 @@ const createDirectOrder = async (req, res) => {
     }
 
     // Calculate totals
-    const itemTotal = product.price * quantity;
+    const itemTotal = Math.round(product.price * quantity * 100) / 100;
     const subtotal = itemTotal;
     const shipping = subtotal > 50 ? 0 : 10; // Free shipping over ₹50
     const total = subtotal + shipping;
@@ -187,8 +187,8 @@ const createOrderFromCart = async (req, res) => {
         const price = resolveItemUnitPrice(product, item.selectedSize, item.selectedColor);
         const parsedQty = parseInt(item.quantity, 10);
         const quantity = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1;
-        const itemTotal = price * quantity;
-        subtotal += itemTotal;
+        const itemTotal = Math.round(price * quantity * 100) / 100;
+        subtotal = Math.round((subtotal + itemTotal) * 100) / 100;
         items.push({
           product: product._id,
           name: product.name,
@@ -216,8 +216,8 @@ const createOrderFromCart = async (req, res) => {
         const product = item.product;
         const price = product.price || 0;
         const quantity = item.quantity || 1;
-        const itemTotal = price * quantity;
-        subtotal += itemTotal;
+        const itemTotal = Math.round(price * quantity * 100) / 100;
+        subtotal = Math.round((subtotal + itemTotal) * 100) / 100;
         return {
           product: product._id,
           name: product.name || 'Unknown Product',
@@ -682,8 +682,8 @@ const createGuestOrder = async (req, res) => {
       const price = resolveItemUnitPrice(product, item.selectedSize, item.selectedColor);
       const parsedQty = parseInt(item.quantity, 10);
       const quantity = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1;
-      const itemTotal = price * quantity;
-      subtotal += itemTotal;
+      const itemTotal = Math.round(price * quantity * 100) / 100;
+      subtotal = Math.round((subtotal + itemTotal) * 100) / 100;
       orderItems.push({
         product: product._id,
         name: product.name,

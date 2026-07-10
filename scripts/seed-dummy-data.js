@@ -4,7 +4,7 @@ const path = require('path');
 // Load environment variables
 require('dotenv').config({ path: path.join(__dirname, '..', 'config.env') });
 
-const DATABASE = process.env.DATABASE || 'mongodb://localhost:28000/ecommerce';
+const DATABASE = process.env.DATABASE || 'mongodb://localhost:27017/ecommerce';
 
 // Models
 const Category = require('../src/models/Category');

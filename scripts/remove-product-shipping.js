@@ -6,7 +6,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config({ path: './config.env' });
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:28000/ecommerce';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce';
 
 async function removeShippingFromProducts() {
   try {

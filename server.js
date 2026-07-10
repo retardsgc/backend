@@ -138,7 +138,6 @@ app.use('/images', express.static(sharedImagesPath));
 const productRoutes = require('./src/routes/productRoutes');
 const categoryRoutes = require('./src/routes/categoryRoutes');
 const siteConfigRoutes = require('./src/routes/siteConfigRoutes');
-const userRoutes = require('./src/routes/userRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const wishlistRoutes = require('./src/routes/wishlistRoutes');
 const cartRoutes = require('./src/routes/cartRoutes');
@@ -167,7 +166,6 @@ app.use('/api/admin-auth', authLimiter);  // FIX-BE-CONFIG: M-17 Re-enable rate 
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/siteconfig', siteConfigRoutes);
-app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/cart', cartRoutes);

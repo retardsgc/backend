@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('../src/models/User');
 
-mongoose.connect('mongodb://localhost:28000/ecommerce').then(async () => {
+mongoose.connect('mongodb://localhost:27017/ecommerce').then(async () => {
   console.log('Connected to DB');
   
   // Test: Check user creation dates

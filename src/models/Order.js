@@ -272,6 +272,10 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Order'
     },
+    currency: {
+      type: String,
+      default: 'INR'
+    },
     // Simple Return Request
     returnRequest: {
       requested: {

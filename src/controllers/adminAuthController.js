@@ -97,7 +97,7 @@ exports.getMe = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      admin: {
+      data: {
         id: admin._id,
         username: admin.username,
         name: admin.name,

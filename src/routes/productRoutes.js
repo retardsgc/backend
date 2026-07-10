@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { validateProduct, validateMongoId } = require('../middleware/validator');
 const {
   getAllProducts,
   getProductById,
@@ -32,6 +33,9 @@ router.get('/search', searchProducts);
 // Route: GET /api/products/stats
 router.get('/stats', getProductStats);
 
+// Route: GET /api/products/stats/overview (alias for admin dashboard)
+router.get('/stats/overview', getProductStats);
+
 // Route: GET /api/products/category/:categoryId
 router.get('/category/:categoryId', getProductsByCategory);
 
@@ -42,21 +46,21 @@ router.get('/:id/related', getRelatedProducts);
 router.get('/', getAllProducts);
 
 // Route: GET /api/products/:id
-router.get('/:id', getProductById);
+router.get('/:id', validateMongoId, getProductById);
 
 // FIX-BE-ROUTES: C-3 added protectAdmin for write routes
 router.use(protectAdmin);
 
 // Route: PATCH /api/products/:id/status
-router.patch('/:id/status', updateProductStatus);
+router.patch('/:id/status', validateMongoId, updateProductStatus);
 
 // Route: PUT /api/products/:id
-router.put('/:id', updateProduct);
+router.put('/:id', validateMongoId, updateProduct);
 
 // Route: DELETE /api/products/:id
-router.delete('/:id', deleteProduct);
+router.delete('/:id', validateMongoId, deleteProduct);
 
 // Route: POST /api/products
-router.post('/', createProduct);
+router.post('/', validateProduct, createProduct);
 
 module.exports = router;

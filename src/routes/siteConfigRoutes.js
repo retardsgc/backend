@@ -49,6 +49,11 @@ router.get('/', getSiteConfig);
 // @access  Public
 router.get('/:key', getSiteConfig);
 
+// @route   PUT /api/siteconfig
+// @desc    Update consolidated site config (no key param - treats as 'all')
+// @access  Private
+router.put('/', protectAdmin, upsertSiteConfig); // FIX-BE-ROUTES: C-3
+
 // @route   POST /api/siteconfig/:key
 // @desc    Create or update site configuration
 // @access  Private (TODO: add authentication middleware)

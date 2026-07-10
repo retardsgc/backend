@@ -59,14 +59,19 @@ const getCategories = async (req, res) => {
 
     // Get total count for pagination
     const total = await Category.countDocuments(query);
+    const totalPages = Math.ceil(total / parseInt(limit));
+    const currentPage = parseInt(page);
 
     res.status(200).json({
       success: true,
-      count: categories.length,
-      total,
-      page: parseInt(page),
-      pages: Math.ceil(total / parseInt(limit)),
-      data: categories
+      data: categories,
+      pagination: {
+        currentPage,
+        totalPages,
+        total,
+        hasNextPage: currentPage < totalPages,
+        hasPrevPage: currentPage > 1
+      }
     });
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -180,20 +185,25 @@ const getCategoryProducts = async (req, res) => {
       .limit(parseInt(limit));
 
     const total = await Product.countDocuments(productQuery);
+    const totalPages = Math.ceil(total / parseInt(limit));
+    const currentPage = parseInt(page);
 
     res.status(200).json({
       success: true,
-      count: products.length,
-      total,
-      page: parseInt(page),
-      pages: Math.ceil(total / parseInt(limit)),
+      data: products,
+      pagination: {
+        currentPage,
+        totalPages,
+        total,
+        hasNextPage: currentPage < totalPages,
+        hasPrevPage: currentPage > 1
+      },
       category: {
         id: category._id,
         name: category.name,
         slug: category.slug,
         status: category.status
-      },
-      data: products
+      }
     });
   } catch (error) {
     console.error('Error fetching category products:', error);

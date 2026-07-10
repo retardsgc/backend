@@ -228,6 +228,28 @@ const getOrderAnalytics = async (req, res) => {
 
     const processingTimes = await Order.aggregate(processingTimePipeline);
 
+    // Orders by hour of day
+    const ordersByHourPipeline = [
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end },
+          status: { $ne: 'cancelled' }
+        }
+      },
+      {
+        $group: {
+          _id: { $hour: '$createdAt' },
+          orders: { $sum: 1 },
+          revenue: { $sum: '$total' }
+        }
+      },
+      {
+        $sort: { '_id': 1 }
+      }
+    ];
+
+    const ordersByHour = await Order.aggregate(ordersByHourPipeline);
+
     // Order value distribution
     const orderValuePipeline = [
       {
@@ -257,6 +279,7 @@ const getOrderAnalytics = async (req, res) => {
         statusTimeline,
         processingTimes,
         orderValueDistribution,
+        ordersByHour: ordersByHour.map(h => ({ hour: h._id, orders: h.orders, revenue: h.revenue })),
         period: { startDate: start, endDate: end }
       }
     });
@@ -377,6 +400,51 @@ const getCustomerAnalytics = async (req, res) => {
       ? (retentionData.returningCustomers / retentionData.totalCustomers) * 100 
       : 0;
 
+    // Top customers by total spent
+    const topCustomersPipeline = [
+      {
+        $match: {
+          status: { $ne: 'cancelled' },
+          createdAt: { $gte: start, $lte: end }
+        }
+      },
+      {
+        $group: {
+          _id: '$user',
+          totalSpent: { $sum: '$total' },
+          orderCount: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { totalSpent: -1 }
+      },
+      {
+        $limit: 10
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'customerInfo'
+        }
+      },
+      {
+        $unwind: { path: '$customerInfo', preserveNullAndEmptyArrays: true }
+      },
+      {
+        $project: {
+          _id: 0,
+          name: { $ifNull: ['$customerInfo.name', 'Unknown'] },
+          email: { $ifNull: ['$customerInfo.email', ''] },
+          totalSpent: 1,
+          orderCount: 1
+        }
+      }
+    ];
+
+    const topCustomers = await Order.aggregate(topCustomersPipeline);
+
     res.status(200).json({
       success: true,
       data: {
@@ -384,6 +452,7 @@ const getCustomerAnalytics = async (req, res) => {
         clvSegments,
         retentionRate,
         retentionData,
+        topCustomers,
         period: { startDate: start, endDate: end }
       }
     });

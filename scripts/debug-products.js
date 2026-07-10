@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-mongoose.connect('mongodb://localhost:28000/ecommerce').then(async () => {
+mongoose.connect('mongodb://localhost:27017/ecommerce').then(async () => {
   const Category = require('../src/models/Category');
   const Product = require('../src/models/Product');
   

@@ -5,7 +5,7 @@ async function testConnection() {
     console.log('🔄 Testing MongoDB connection...');
     
     // Connect to MongoDB
-    await mongoose.connect(process.env.DATABASE || 'mongodb://localhost:28000/ecommerce');
+    await mongoose.connect(process.env.DATABASE || 'mongodb://localhost:27017/ecommerce');
     console.log('✅ Connected to MongoDB successfully!');
     
     // Test database access

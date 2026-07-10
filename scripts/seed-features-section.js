@@ -5,7 +5,7 @@ require('dotenv').config({ path: './config.env' });
 // MongoDB connection
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.DATABASE || 'mongodb://localhost:28000/ecommerce', {
+    await mongoose.connect(process.env.DATABASE || 'mongodb://localhost:27017/ecommerce', {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
